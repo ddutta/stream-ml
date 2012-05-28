@@ -18,7 +18,7 @@ class SGDSpout extends StormSpout(outputFields = List("bla")) {
                        "i am at two with nature")
   var id = 0
   val n = Random.nextInt(100000)
-  val sgddata = io.Source.fromFile("./src/main/scala/com/streamml/sgd/heart_scale").getLines.toList 
+  val sgddata = io.Source.fromFile("./src/main/scala/com/streamml/sgdspray/heart_scale").getLines.toList 
   override def declareOutputFields(declarer: OutputFieldsDeclarer) = {
     declarer.declareStream(SGDStreamIDs.SPOUT_MASTER, new Fields("timestamp", "transactionID", "n", "features"))
   }
