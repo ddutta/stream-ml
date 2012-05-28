@@ -16,7 +16,6 @@ class SGDStateTransaction(var t: Int, d: Double, ns: Int){
 }
 
 class SGDStateBolt (n: Int) extends SGDBolt {
-    val maxdim=40
   /* 
    * In order to declare a stream, we need to override this method, and precisely define the stream
    * We need to make this a little automated. 
@@ -29,7 +28,7 @@ class SGDStateBolt (n: Int) extends SGDBolt {
   
   private val transactions = new HashMap[Int, SGDStateTransaction]
   var nseen = 0;
-  var weights = Array.fill(maxdim){ 0.0 }
+  var weights = Array.fill(SGDSlaveBoltConsts.maxdim){ 0.0 }
   /* 
    * This method will be called whenever a tuple is received by the bolt. 
    */
@@ -55,7 +54,7 @@ class SGDStateBolt (n: Int) extends SGDBolt {
          println(" in statebolt about to send back averaged weights")
          // Reset weight vector and nseen for the next averaging process
          nseen = 0;
-         weights = Array.fill(maxdim){ 0.0 }
+         weights = Array.fill(SGDSlaveBoltConsts.maxdim){ 0.0 }
        } 
       // Emit to the particular stream, else we would say 
       // using anchor t emit (...)
