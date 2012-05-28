@@ -16,7 +16,7 @@ class SGDStateTransaction(var t: Int, d: Double, ns: Int){
 }
 
 class SGDStateBolt (n: Int) extends SGDBolt {
-  
+    val maxdim=40
   /* 
    * In order to declare a stream, we need to override this method, and precisely define the stream
    * We need to make this a little automated. 
@@ -24,45 +24,43 @@ class SGDStateBolt (n: Int) extends SGDBolt {
    * We cannot emit a tuple that has a different format. 
    */
   override def declareOutputFields(declarer: OutputFieldsDeclarer) = {
-    declarer.declareStream(SGDStreamIDs.STATE_SLAVE, new Fields("timestamp", "transactionID", "n", "sum"))
+    declarer.declareStream(SGDStreamIDs.STATE_SLAVE, new Fields("timestamp", "transactionID", "n", "weights"))
   }
   
   private val transactions = new HashMap[Int, SGDStateTransaction]
-  
+  var nseen = 0;
+  var weights = Array.fill(maxdim){ 0.0 }
   /* 
    * This method will be called whenever a tuple is received by the bolt. 
    */
   def execute(t: Tuple) = t.getSourceStreamId match {
     case SGDStreamIDs.SLAVE_STATE => { 
       val tid = t.getIntegerByField("transactionID")
-      val sum = t.getDoubleByField("sum")
-      var trans = transactions.get(tid)
-      println(" in statebolt sum = "+sum + "trans class id is "+trans)
-      if (trans !=None) {
-        println("in state transaction previously seen id is "+trans + " nSeen = " +trans.get.nSeen + " n is " +n)
-        val tsum  = trans.get.sum + sum 
-        // update the sum and check if all the subtuples have been seen 
-        if (trans.get.nSeen == n-1) {
-          // time to send the sum
-          (using anchor t).toStream(SGDStreamIDs.STATE_SLAVE).emit("timestamp", tid:java.lang.Integer, 
-              n:java.lang.Integer, tsum:java.lang.Double) 
-          t.ack
-          // remove the transaction
-          transactions.remove(tid)
-        } else {
-          // just add update 
-          trans.get.sum += sum
-          transactions.updated(tid,trans.get)
-        }
-      } else {
-        // new transaction seen 
-        println("in state new transaction seen")
-        transactions.put(tid, new SGDStateTransaction(tid, sum, 1))
+      val newweight = t.getString(3).split(" ").toArray
+      nseen = nseen + 1
+      println(" in statebolt incoming weight dimension = "+newweight.length)
+      for(i <- 0 until weights.length){
+        weights(i)=weights(i) + newweight(i).toDouble
       }
+
+      // update the sum and check if all the subtuples have been seen 
+      if (nseen == n) {
+         // time to send the sum
+        for(i <- 0 until weights.length){
+           weights(i)=weights(i)/n
+         }
+         val weightlist = weights.elements.toList
+         (using anchor t).toStream(SGDStreamIDs.STATE_SLAVE).emit("timestamp", tid:java.lang.Integer, 
+              n:java.lang.Integer, weightlist.mkString(" ")) 
+         println(" in statebolt about to send back averaged weights")
+         // Reset weight vector and nseen for the next averaging process
+         nseen = 0;
+         weights = Array.fill(maxdim){ 0.0 }
+       } 
       // Emit to the particular stream, else we would say 
       // using anchor t emit (...)
       //(using anchor t).toStream(SGDStreamIDs.STATE_SLAVE).emit("timestamp", "transactionID", n:java.lang.Integer, sum:java.lang.Double) 
-      //t ack
+      t.ack
     }
     case _ => error("Invalid stream ID received by SGDMasterBolt")
   }
