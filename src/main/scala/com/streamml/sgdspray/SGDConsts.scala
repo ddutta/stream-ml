@@ -16,4 +16,5 @@ object SGDStreamIDs {
 object SGDSlaveBoltConsts { 
   val maxdim = 40
   val learningrate = 0.1
+  val timerFactor = 10 // every 10s we need to sync up with the state bolt 
 }

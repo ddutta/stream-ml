@@ -7,6 +7,7 @@ class SGDSlaveBolt extends SGDBolt {
   //need to fill this with random values later - using 1 for testing
   var weights = Array.fill(SGDSlaveBoltConsts.maxdim){ 1.0 }
   var latestexample:List[String] = Nil
+  var currentTime: Long = 0
   
   override def declareOutputFields(declarer: OutputFieldsDeclarer) = {
     declarer.declareStream(SGDStreamIDs.SLAVE_MASTER, new Fields("timestamp", "transactionID", "sid", "n", "features"))
@@ -42,10 +43,14 @@ class SGDSlaveBolt extends SGDBolt {
         weights(fid) = weights(fid) + 2*SGDSlaveBoltConsts.learningrate*(dotProduct-label.toDouble)*fval
       }
       
-      // TODO: We need to optionally sync with the state bolt and send it over to the state bolt
-      val weightlist = weights.elements.toList
-      (using anchor t).toStream(SGDStreamIDs.SLAVE_STATE).emit("timestamp", tid :java.lang.Integer, SGDSlaveBoltConsts.maxdim :java.lang.Integer, weightlist.mkString(" "))
-      t.ack
+      // send the list of weights to the state bolt every k seconds, k = SGDSlaveBoltConsts.timerFactor
+      val tempTime = System.currentTimeMillis/(1000* SGDSlaveBoltConsts.timerFactor)
+      if (tempTime>currentTime){
+        currentTime = tempTime  
+        val weightlist = weights.elements.toList
+        (using anchor t).toStream(SGDStreamIDs.SLAVE_STATE).emit("timestamp", tid :java.lang.Integer, SGDSlaveBoltConsts.maxdim :java.lang.Integer, weightlist.mkString(" "))
+        t.ack
+      }
     }
     case SGDStreamIDs.STATE_SLAVE => {
       // TODO handle the average done by the state bolt. 
