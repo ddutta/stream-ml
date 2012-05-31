@@ -1,3 +1,19 @@
+/* 
+ * Licensed under the Apache License, Version 2.0 (the "License"); 
+ * you may not use this file except in compliance with the License. 
+ * You may obtain a copy of the License at
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * Unless required by applicable law or agreed to in writing, software 
+ * distributed under the License is distributed on an "AS IS" BASIS, 
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. 
+ * See the License for the specific language governing permissions and 
+ * limitations under the License.
+ * 
+ *  Copyright (c) 2012 Debojyoti Dutta, 
+ *  Copyright (c) 2012 Abhimanyu Das
+ * 
+ */
+
 package com.streamml.sgdspray
 
 import storm.scala.dsl._
@@ -5,8 +21,6 @@ import backtype.storm.Config
 import backtype.storm.LocalCluster
 import backtype.storm.topology.TopologyBuilder
 import backtype.storm.tuple.{Fields, Tuple, Values}
-import collection.mutable.{Map, HashMap}
-import util.Random
 
 object SGDTopology {
   def main(args: Array[String]) = {
@@ -28,7 +42,7 @@ object SGDTopology {
     conf.setMaxTaskParallelism(3)
 
     val cluster = new LocalCluster
-    cluster.submitTopology("word-count", conf, builder.createTopology)
+    cluster.submitTopology("stream-ml", conf, builder.createTopology)
     Thread sleep 10000
     cluster.shutdown
   }
